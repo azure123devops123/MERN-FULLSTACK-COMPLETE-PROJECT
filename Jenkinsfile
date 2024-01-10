@@ -5,8 +5,9 @@ pipeline {
     }
     agent { docker { image 'node:21-bullseye-slim'} }
     stages {
-        stage ('Checkout'){
+        stage ('Build'){
             steps {
+                echo "Build"
                 sh 'docker version'
                 sh 'node --version'
             }
