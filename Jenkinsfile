@@ -34,7 +34,6 @@ pipeline {
 		// CHECKOUT IS AUTOMATIC - HERE WE CAN JUST PRINT THE USEFUL INFORMATION
 		stage ('Checkout') {
 			steps {
-				sh 'mvn --version'
 				sh 'docker version'
 				// sh 'node --version'
 				echo "Build"
