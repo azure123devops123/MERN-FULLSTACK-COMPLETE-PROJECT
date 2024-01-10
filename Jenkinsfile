@@ -10,7 +10,7 @@ pipeline {
             steps {
                 echo "Build"
                 sh 'docker version'
-                sh 'node --version'
+                // sh 'node --version'
             }
         }
     }
