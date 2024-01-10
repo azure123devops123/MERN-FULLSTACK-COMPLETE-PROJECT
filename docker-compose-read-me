@@ -1,0 +1,145 @@
+%%%%%%%%%%%%%%%%%%%%%%%
+=> DOCKER RUN COMMANDS:
+%%%%%%%%%%%%%%%%%%%%%%%
+
+docker pull mongo
+docker pull mongo-express
+
+docker network create mongo-network
+
+# Default mongo port: 27017
+docker run -d \
+--name mongodb \
+--net mongo-network \
+-p 27017:27017 \
+-e MONGO_INITDB_ROOT_USERNAME=admin \
+-e MONGO_INITDB_ROOT_PASSWORD=password \
+mongo:latest
+
+docker ps | grep mongodb   # Container is running
+docker logs 8b6db0564d51   # see the logs at the end - Waiting for connections" "attr":{"port":27017,"ssl":"off"}
+
+# Default mongo-express port: 8081
+docker run -d \
+--name mongo-express \
+--net mongo-network \
+-p 8081:8081 \
+-e ME_CONFIG_MONGODB_ADMINUSERNAME=admin \
+-e ME_CONFIG_MONGODB_ADMINPASSWORD=password \
+-e ME_CONFIG_MONGODB_SERVER=mongodb \
+mongo-express:latest
+
+docker ps | grep mongo-express     # Container is running
+docker ps | grep mongo             # Both up and running
+docker logs -f b11077f58cfd        # follow the logs with -f flag 
+
+http://localhost:8081/     # use admin username: admin, password: pass to login
+
+# Now is the time to connect to our local development app with this mongodb using a protocol of the database and the uri.
+
+# Now we have to run the backend server : npm run dev
+# Now we have to run our frontend server: npm start
+# http://localhost:3000/    check in the browser. Add a user profile and it will create a  
+# Database: test and a inside a Collection: userprofiles
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+=> DOCKER COMPOSE COMMANDS:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# We can use the website to make a docker compose file easily:   https://www.composerize.com/
+touch docker-compose.yml    # Create a yml file
+docker compose up -d        # Create, Start in the Detached mode
+docker compose ps           # Make Sure we have Port Forwarding  in both containers as well
+docker compose logs -f
+docker compose down         # Remove, delete 
+
+#  In one terminal Backend Server is running: npm run dev   
+#  In another terminal frontend Server is running: npm start
+#   http://localhost:3000/    # Add a New Userdetail will create a Database: test and a Collection: userprofiles and enter the data inside the userprofiles.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+=> NOW LET'S SAY YOU HAVE DEVELOPE A NEW APPLICATION FEATURE AND YOU HAVE TESTED AND YOU ARE READY TO DEPLOY IT.
+TO DEPLOY YOUR APPLICATION SHOULD BE PACKAGED INTO A DOCKER CONTAINER:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Dockerfile and .dockerignore file
+touch Dockerfile            // CREATE A DOCKER FILE
+touch .dockerignore         // CREATE A DOCKERIGNORE FILE
+
+# Build image
+docker build -t frontend:1.0 .      // TWO PARAMETERS TAG AND CONTEXT ( THE PATH WHERE THE DOCKERFILE LIVES)
+
+# List images
+docker images                       // you will see your images
+
+# Run Image
+docker run -d \
+--name frontend \
+--net mongo-network \
+-p 8080:8080 \
+frontend:1.0
+
+# Check in browser:
+http://localhost:8080/
+
+# Check logs
+docker logs 82edf874eeaf
+
+# Further Inspection
+docker exec -it 82edf874eeaf /bin/sh
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+=> AFTER BUILDING THE IMAGE NOW WE HAVE TO PUSH TO A PRIVATE REPOSITORY SO OTHER TEAMS (TEST SERVERS OR DEPLOYMENT SERVERS)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# AWS
+Amazon Elastic Container Registry
+
+# Create a private repository 
+REPOSITORY NAME: frontend       // We can store up to 1000 different versions or tags into this repository
+
+REGISTRY_DOMAIN/REPOSITORY:VERSION
+
+docker images | grep frontend           // we want to push the frontend image to the aws
+
+CLICK ON 'View Push Commands' will give you 
+
+1) docker login command: aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 314715351724.dkr.ecr.ap-southeast-2.amazonaws.com
+
+2) build the image command: docker build -t frontend .
+3) Tag the image (Rename) the image to include the information that where we want to push the image: 
+   docker tag frontend:1.0 314715351724.dkr.ecr.ap-southeast-2.amazonaws.com/frontend:1.0
+
+4) docker images   // you can see the another image - both the images are identical. Its a copy.   
+5) push the image:   docker push 314715351724.dkr.ecr.ap-southeast-2.amazonaws.com/frontend:1.0       // it will push layer by layer 
+
+# Note:- docker login required only once.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+=> NOW WE NEED TO DEPLOY THE APPLICATION ON OTHER ENVIRONMENT USING DOCKER COMPOSE (DEV, TEST OR PROD):
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+=> STATEFUL APPLICATION LIKE DATABASE (WE NEED DATA PERSISTANCE USING VOLUMES):
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+NOTE:- DATA IS GONE - IF RESTART OR REMOVE A CONTAINER SO NEED DOCKER VOLUMES:
+# 3 TYPES FOR VOLUMES:
+1) HOST VOLUMES -> -V /PATH-ON-HOST:/PATH-WHERE-DATABASE-STORES-DATA
+2) Anonymous VOLUMES -> -V /PATH-WHERE-DATABASE-STORES-DATA
+3) NAME VOLUMES (USED IN PRODUCTION) -> -V NAME:/PATH-WHERE-DATABASE-STORES-DATA
+
+docker volume ls                       // can list volumes
+docker volume rm frontend_mongo-data   // can remove a volume
+
+NOTE:- WE CAN USE DOCKER COMPOSE OR DOCKER RUN COMMAND FOR VOLUMES:
+
+INSIDE CONTAINER VIRTUAL FILE SYSTEM:
+-------------------------------------
+docker exec -it 82b58b65dd33 sh        // inside container 
+ls /data/db                // see the data inside container. This path is different for different databases.
+
+DOCKER VOLUME ON OUR SYSTEM DIFFERENT FOR DIFFERENT OS. ON MAC (/var/lib/docker/volumes):
+-----------------------------------------------------------------------------------------
+ls /var/lib/docker/volumes     // list of volumes are not directly accessible so we need privileged container.

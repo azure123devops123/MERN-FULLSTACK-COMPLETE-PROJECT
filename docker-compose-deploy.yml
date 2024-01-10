@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  frontend:
+    container_name: frontend
+    image: 314715351724.dkr.ecr.ap-southeast-2.amazonaws.com/frontend:1.1 # IMPORTANT:- DUE TO PRIVATE REPOSITORY - WE HAVE TO DOCKER LOGIN ON THE DEVELOPMENT SERVER BEFORE WE EXECUTE THE DOCKER COMPOSE
+    networks:
+      - mongo-network
+    ports:
+      - 8080:8080
+
+  mongo:          # Mongo Database Container 
+    container_name: mongodb
+    restart: always
+    networks:
+      - mongo-network
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    image: mongo:latest
+    volumes:
+      - mongo-data:/data/db         # NAME:PATH-IN-CONTAINER-WHERE-DATABASE-SAVE-ITS-DATA (frontend_mongo-data will be created DIRECTORY NAME will be added as prefix)
+
+  mongo-express:          # Mongo User Interface Container
+    container_name: mongo-express
+    restart: always
+    depends_on:
+      - mongo
+    networks:
+      - mongo-network
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_SERVER=mongodb      # This must be the name of the above container only
+      # we will create database manually using mongo express UI rather then defining an mongo db environment variable here.
+    image: mongo-express:latest
+
+# As docker compose take cares of networks and we do not have to create ourselfs
+# But if We want to create an external network ourself then first manually create it using docker network command (custom-mongo-network) 
+# And then we can make all the containers part of that network otherwise we will get an error if we do not created it manually beforehand.
+networks:
+  mongo-network:
+    external: true
+
+
+volumes:
+  mongo-data:             # LIST OF VOLUMES
+    driver: local
