@@ -1,8 +1,8 @@
 pipeline {
     agent { docker { image 'node:21-bullseye-slim'}}
-    // environment {
-    //     dockerHome = tool 'myDocker'
-    // }
+    environment {
+        dockerHome = tool 'myDocker'
+    }
     stages {
         stage ('Checkout'){
             steps {
