@@ -1,10 +1,10 @@
 pipeline {
-    agent any
+    // agent any
     // environment {
     //     dockerHome = tool 'myDocker'
     //     PATH = "$dockerHome/bin:$PATH"
     // }
-    // agent { docker { image 'node:21-bullseye-slim'} }
+    agent { docker { image 'node:21-bullseye-slim'} }
     stages {
         stage ('Build') {
             steps {
